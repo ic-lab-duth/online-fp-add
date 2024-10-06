@@ -1,0 +1,8 @@
+# directories
+ac_simutils/
+ac_types/
+
+# files
+*.elf
+*.txt
+*.tar.gz
