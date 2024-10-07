@@ -4,13 +4,8 @@
 
 ////// IN 16
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_82_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_82_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_82_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_82_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_82)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_82<K>(vec);
     out = ffp;
   }
   template<int K>
@@ -19,130 +14,65 @@
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_28_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_28_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_28)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_28<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_28_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_28_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_242)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_242<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_242_area_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_242_area_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_422)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_422<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_242_area_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_242_area_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_224)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_224<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_422_area_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_422_area_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_422_area_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_422_area_lat<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_224_area_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_224_area_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_224_area_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_224_area_lat<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_2222_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_4x2_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_2222)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_2222<K>(vec);
     out = ffp;
   }
 
 ////// IN 32
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_162_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_162_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_162)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_162<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_162_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_162_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_216)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_216<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_216_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_216_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_282)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_282<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_216_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_216_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_244)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_244<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_282_area_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_282_area_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_442)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_442<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_282_area_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_282_area_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_822)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_822<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_282_lat_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_282_lat_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_282_lat_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_282_lat_lat<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_244_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_244_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_244_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_244_lat<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_442_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_442_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_442_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_442_lat<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_822_area_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_822_area_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_822_area_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_822_area_lat<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_424_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_424_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_424_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_424_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_424)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_424<K>(vec);
     out = ffp;
   }
   template<int K>
@@ -156,58 +86,33 @@
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_228_area_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_228_area_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_228)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_228<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_2224_2xarea_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_2224_2xarea_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_2224)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_2224<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_2224_2xarea_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_2224_2xarea_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_2242)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_2242<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_2242_2xarea_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_2242_2xarea_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_2422)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_2422<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_2242_2xarea_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_2242_2xarea_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_4222)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_4222<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_2422_2xarea_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_2422_2xarea_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_2422_2xarea_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_2422_2xarea_lat<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_4222_2xarea_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_4222_2xarea_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_4222_2xarea_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_4222_2xarea_lat<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_5x2_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_5x2_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_5x2_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_5x2_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_22222)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_22222<K>(vec);
     out = ffp;
   }
   template<int K>
@@ -218,33 +123,18 @@
 
 ////// IN 64
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_322_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_322_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_322)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_322<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_322_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_322_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_232)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_232<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_232_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_232_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_232_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_232_lat<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_2162_area_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_2162_area_area<K>(vec);
-    out = ffp;
-  }
-  template<int K>
-  void CCS_BLOCK(fpaRed_ol_2162_area_lat)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_2162_area_lat<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_2162)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_2162<K>(vec);
     out = ffp;
   }
   template<int K>
@@ -263,33 +153,33 @@
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_284_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_284_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_284)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_284<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_248_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_248_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_248)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_248<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_428_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_428_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_428)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_428<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_482_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_428_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_482)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_428<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_842_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_842_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_842)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_842<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_824_area)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_824_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_824)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_824<K>(vec);
     out = ffp;
   }
   template<int K>
@@ -298,28 +188,28 @@
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_2822_3xarea)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_2822_3xarea<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_2822)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_2822<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_2228_3xarea)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_2228_3xarea<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_2228)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_2228<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_24222_4xarea)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_24222_4xarea<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_24222)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_24222<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_22224_4xarea)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_22224_4xarea<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_22224)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_22224<K>(vec);
     out = ffp;
   }
   template<int K>
-  void CCS_BLOCK(fpaRed_ol_6x2_6xarea)(T vec[K], T &out) {
-    T ffp(0); ffp.fpaReduce_online_6x2_area<K>(vec);
+  void CCS_BLOCK(fpaRed_ol_222222)(T vec[K], T &out) {
+    T ffp(0); ffp.fpaReduce_online_222222<K>(vec);
     out = ffp;
   }
 

@@ -5,7 +5,7 @@
 import subprocess as sbp
 import re
 
-INC_FLAGS = "-I$FAST_FLOAT -I$AC_TYPES/include -I$AC_SIMUTILS/include"
+INC_FLAGS = "-I$AC_TYPES/include -I$AC_SIMUTILS/include"
 
 def map_dtype(dtype):
   if dtype == "fp32":
@@ -24,19 +24,14 @@ def map_dtype(dtype):
 
 '''Todo: Add all design configurations'''
 designs = [
-  {"dname":"fpaRed"                  , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_82_area"       , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_82_lat"        , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_44"            , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_28_area"       , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_28_lat"        , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_242_area_area" , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_242_area_lat"  , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_422_area_area" , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_422_area_lat"  , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_224_area_area" , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_224_area_lat"  , "sz":16, "dts": ["bf16"]},
-  {"dname":"fpaRed_ol_2222_area"     , "sz":16, "dts": ["bf16"]},
+  {"dname":"fpaRed"         , "sz":16, "dts": ["bf16"]},
+  {"dname":"fpaRed_ol_82"   , "sz":16, "dts": ["bf16"]},
+  {"dname":"fpaRed_ol_44"   , "sz":16, "dts": ["bf16"]},
+  {"dname":"fpaRed_ol_28"   , "sz":16, "dts": ["bf16"]},
+  {"dname":"fpaRed_ol_242"  , "sz":16, "dts": ["bf16"]},
+  {"dname":"fpaRed_ol_422"  , "sz":16, "dts": ["bf16"]},
+  {"dname":"fpaRed_ol_224"  , "sz":16, "dts": ["bf16"]},
+  {"dname":"fpaRed_ol_2222" , "sz":16, "dts": ["bf16"]},
 ]
 
 samples = 1

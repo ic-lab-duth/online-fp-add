@@ -34,18 +34,13 @@ public:
 public:
   /** DIFFERENT RADIX OPERATORS
     There are 6 types of operators:
-      - radix-2
-      - radix-2-area
-      - radix-2-intermediate
-      - radix-2-area-intermediate
       - radix-N (for arbitrary number of N-inputs)
       - radix-N-intermediate
 
       Opeartors withought the `-intermediate` suffix are for the
       last level of the binary operator tree. Other operators are
       used in the rest of the levels down to level 0 (root) where 
-      the final sum and max exponent is computed. The `-area` radix-2
-      target area efficiency by using a single shifter and adder.
+      the final sum and max exponent is computed.
   **/
 
   template <int N, int outbits>
@@ -121,140 +116,18 @@ public:
     acc_o = acc_s;
   }
 
-  template<int in_bits, int out_bits>
-  void radix_2_reduce_intermediate(
-    ac_int<in_bits , true>  acc_i[2],
-    ac_int<E+2     , true>  max_i[2],
-    ac_int<out_bits, true> &acc_o   ,
-    ac_int<E+2, true>      &max_o
-  ){
-    ac_int<E+2, true> i_minus_j = max_i[0] - max_i[1];
-    ac_int<E+2, true> j_minus_i = max_i[1] - max_i[0];
-
-    ac_int<1, false> sel = i_minus_j[E+1];
-
-    ac_int<in_bits, true> shift_i = acc_i[0] >> j_minus_i;
-    ac_int<in_bits, true> shift_j = acc_i[1] >> i_minus_j;
-
-    ac_int<out_bits, true> add_i = acc_i[1] + shift_i;
-    ac_int<out_bits, true> add_j = acc_i[0] + shift_j;
-
-    max_o = sel ? max_i[1] : max_i[0];
-    acc_o = sel ? add_i    : add_j;
-  }
-
-  template<int in_bits, int out_bits>
-  void radix_2_reduce_intermediate_area(
-    ac_int<in_bits , true>  acc_i[2],
-    ac_int<E+2     , true>  max_i[2],
-    ac_int<out_bits, true> &acc_o   ,
-    ac_int<E+2, true>      &max_o
-  ){
-    ac_int<E+2, true> i_minus_j = max_i[0] - max_i[1];
-    ac_int<E+2, true> j_minus_i = max_i[1] - max_i[0];
-
-    ac_int<1, false> sel = i_minus_j[E+1];
-
-    ac_int<in_bits, true> shift_val  = sel ? acc_i[0]  : acc_i[1];
-    ac_int<in_bits, true> shift_amnt = sel ? j_minus_i : i_minus_j;
-    ac_int<in_bits, true> add_val    = sel ? acc_i[1]  : acc_i[0];
-
-    // std::cout << (shift_val >> shift_amnt).to_string(AC_BIN, false, true) << "\n";
-    // std::cout << add.to_string(AC_BIN, false, true) << "\n";
-
-    max_o = sel ? max_i[1] : max_i[0];
-    acc_o = (shift_val >> shift_amnt) + add_val;
-  }
-
-  void radix_2_reduce(
-    ffloat<M, E>       A[2],
-    ac_int<M+1+1+1, true> &acc_o,
-    ac_int<E+2, true>     &max_o
-  ){
-    ac_int<E+2, true> i_minus_j = A[0].exponent - A[1].exponent;
-    ac_int<E+2, true> j_minus_i = A[1].exponent - A[0].exponent;
-
-    ac_int<1, false> sel = i_minus_j[E+1];
-
-    ac_int<M+1+1+1, false> sig_i = A[0].sig();
-    ac_int<M+1+1+1, false> sig_j = A[1].sig();
-
-    ac_int<M+1+1+1, false> shftd_i = sig_i >> j_minus_i;
-    ac_int<M+1+1+1, false> shftd_j = sig_j >> i_minus_j;
-
-    ac_int<M+1+1+1, false> sigs_i;
-    ac_int<M+1+1+1, false> sigs_j;
-    ac_int<M+1+1+1, false> shftds_i;
-    ac_int<M+1+1+1, false> shftds_j;
-
-    SIGN_XOR:
-    #pragma hls_unroll
-    for (int i = 0; i < M+1+1+1; i++) {
-      shftds_i[i] = shftd_i[i] ^ A[0].sign;
-      shftds_j[i] = shftd_j[i] ^ A[1].sign;
-      sigs_i[i]   = sig_i[i]   ^ A[0].sign;
-      sigs_j[i]   = sig_j[i]   ^ A[1].sign;
-    }
-
-    ac_int<M+1+1+1, false> add_i = shftds_i + sigs_j + A[0].sign + A[1].sign;
-    ac_int<M+1+1+1, false> add_j = shftds_j + sigs_i + A[0].sign + A[1].sign;
-
-    acc_o = sel ? add_i         : add_j;
-    max_o = sel ? A[1].exponent : A[0].exponent;
-  }
-
-  void radix_2_reduce_area(
-    ffloat<M, E>      A[2],
-    ac_int<M+1+1+1, true> &acc_o,
-    ac_int<E+2, true>     &max_o
-  ){
-    ac_int<E+2, true> i_minus_j = A[0].exponent - A[1].exponent;
-    ac_int<E+2, true> j_minus_i = A[1].exponent - A[0].exponent;
-
-    ac_int<M+1+1+1, false> sig_i = A[0].sig();
-    ac_int<M+1+1+1, false> sig_j = A[1].sig();
-
-    ac_int<1, false> sel = i_minus_j[E+1];
-
-    ac_int<1, false> shift_sign = sel ? A[0].sign : A[1].sign;
-    ac_int<1, false> add_sign   = sel ? A[1].sign : A[0].sign;
-
-    ac_int<M+1+1+1, false> shift_val  = sel ? sig_i     : sig_j;
-    ac_int<E+2    , false> shift_amnt = sel ? j_minus_i : i_minus_j;
-    ac_int<M+1+1+1, false> add_val    = sel ? sig_j     : sig_i;
-
-    ac_int<M+1+1+1, false> shiftd_val = (shift_val >> shift_amnt);
-
-    ac_int<M+1+1+1, false> shiftd_val_xor;
-    ac_int<M+1+1+1, false> add_val_xor;
-
-    SIGN_XOR:
-    #pragma hls_unroll
-    for (int i = 0; i < M+1+1+1; i++) {
-      shiftd_val_xor[i] = shiftd_val[i] ^ shift_sign;
-      add_val_xor[i]    = add_val[i]    ^ add_sign;
-    }
-
-    max_o = sel ? A[1].exponent : A[0].exponent;
-    acc_o = shiftd_val_xor + add_val_xor + A[0].sign + A[1].sign;
-  }
-
   /** MULTI-TERM ONLINE ADDERS
     There are 3 types of multi-term adders for 3 different 
     input_sizes of 16-, 32- and 64-terms.
     
     Each adder has the prefix `fpaReduce_online`, then 
     follows the concatenated radix operators e.g. 2-2-2 is 222, 
-    and 32-2 or 2-16-2 is 322, 2162 respectively. Finally, 
-    based on the type of radix-2 operator used there's an added
-    `_area` or `_lat` suffix. E.g. If the adder is 2-16-2 with
-    the only first radix-2 operator having the `_area` suffix then the
-    multi-term online adder is denoted as: `fpaReduce_online_2162_area_lat`
+    and 32-2 or 2-16-2 is 322, 2162 respectively.
   **/
 
   // IN 64
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_322_area(ffloat<M,E> A[N]) {
+  void fpaReduce_online_322(ffloat<M,E> A[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -283,48 +156,13 @@ public:
 
     ac_int<M+1+1+6, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar, max_ar, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar, max_ar, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_322_lat(ffloat<M,E> A[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-    
-    ac_int<M+1+1+5, true> acc_ar[2];
-    ac_int<E+2    , true> max_ar[2];
-    
-    ffloat<M,E> A_0[32];
-    ffloat<M,E> A_1[32];
-
-    SET_A0:
-    #pragma hls_unroll
-    for(int i = 0; i < 32; i++) {
-      A_0[i] = A[i];
-    }
-    SET_A1:
-    #pragma hls_unroll
-    for(int i = 0; i < 32; i++) {
-      A_1[i] = A[32 + i];
-    }
-
-    radix_reduce<32>(A_0, acc_ar[0], max_ar[0]);
-    radix_reduce<32>(A_1, acc_ar[1], max_ar[1]);
-
-    ac_int<M+1+1+6, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar, max_ar, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_232_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_232(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -349,7 +187,7 @@ public:
     ROW_1:
     #pragma hls_unroll
     for (int i = 0; i < 32; i++) {
-      radix_2_reduce_area(A[i], acc_ar[i], max_ar[i]);
+      radix_reduce<2>(A[i], acc_ar[i], max_ar[i]);
     }
 
     ac_int<M+1+1+6, true> acc;
@@ -360,43 +198,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_232_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[32];
-    ac_int<E+2    , true> max_ar[32];
-    
-    ffloat<M,E> A[32][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 32; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 32; i++) {
-      radix_2_reduce(A[i], acc_ar[i], max_ar[i]);
-    }
-
-    ac_int<M+1+1+6, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_reduce_intermediate<32>(acc_ar, max_ar, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2162_area_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_2162(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -423,7 +225,7 @@ public:
     for (int i = 0; i < 2; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 16; j++) {
-        radix_2_reduce_area(A[i*16+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*16+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -438,151 +240,7 @@ public:
 
     ac_int<M+1+1+6, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2162_area_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[2][16];
-    ac_int<E+2    , true> max_ar[2][16];
-    
-    ffloat<M,E> A[32][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 32; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 16; j++) {
-        radix_2_reduce_area(A[i*16+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+5, true> acc_ar_1[2];
-    ac_int<E+2    , true> max_ar_1[2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_reduce_intermediate<16>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+6, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2162_lat_area(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[2][16];
-    ac_int<E+2    , true> max_ar[2][16];
-    
-    ffloat<M,E> A[32][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 32; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 16; j++) {
-        radix_2_reduce(A[i*16+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+5, true> acc_ar_1[2];
-    ac_int<E+2    , true> max_ar_1[2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_reduce_intermediate<16>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+6, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2162_lat_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[2][16];
-    ac_int<E+2    , true> max_ar[2][16];
-    
-    ffloat<M,E> A[32][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 32; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 16; j++) {
-        radix_2_reduce(A[i*16+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+5, true> acc_ar_1[2];
-    ac_int<E+2    , true> max_ar_1[2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_reduce_intermediate<16>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+6, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_1, max_ar_1, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_1, max_ar_1, acc, maxExp);
 
     #include "norm_and_round.h"
   }
@@ -696,7 +354,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_284_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_284(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -723,7 +381,7 @@ public:
     for (int i = 0; i < 4; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 8; j++) {
-        radix_2_reduce_area(A[i*8+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*8+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -744,7 +402,7 @@ public:
   }
 
     template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_248_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_248(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -771,7 +429,7 @@ public:
     for (int i = 0; i < 8; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 4; j++) {
-        radix_2_reduce_area(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -792,7 +450,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_482_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_482(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -834,13 +492,13 @@ public:
 
     ac_int<M+1+1+6, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_1, max_ar_1, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_1, max_ar_1, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_428_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_428(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -877,7 +535,7 @@ public:
     ROW_2:
     #pragma hls_unroll
     for (int i = 0; i < 8; i++) {
-      radix_2_reduce_intermediate_area(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
+      radix_reduce_intermediate<2>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
     }
 
     ac_int<M+1+1+6, true> acc;
@@ -888,7 +546,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_842_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_842(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -930,13 +588,13 @@ public:
 
     ac_int<M+1+1+6, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_1, max_ar_1, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_1, max_ar_1, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_824_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_824(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -973,7 +631,7 @@ public:
     ROW_2:
     #pragma hls_unroll
     for (int i = 0; i < 4; i++) {
-      radix_2_reduce_intermediate(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
+      radix_reduce_intermediate<2>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
     }
 
     ac_int<M+1+1+6, true> acc;
@@ -1032,7 +690,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2228_3xarea(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_2228(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1059,7 +717,7 @@ public:
     for (int i = 0; i < 16; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -1071,7 +729,7 @@ public:
     for (int i = 0; i < 8; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
+        radix_reduce_intermediate<2>(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
       }
     }
 
@@ -1081,7 +739,7 @@ public:
     ROW_3:
     #pragma hls_unroll
     for (int i = 0; i < 8; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
+      radix_reduce_intermediate<2>(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
     }
   
     ac_int<M+1+1+6, true> acc;
@@ -1092,7 +750,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2822_3xarea(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_2822(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1119,7 +777,7 @@ public:
     for (int i = 0; i < 4; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 8; j++) {
-        radix_2_reduce_area(A[i*8+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*8+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -1141,18 +799,18 @@ public:
     ROW_3:
     #pragma hls_unroll
     for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
+      radix_reduce_intermediate<2>(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
     }
   
     ac_int<M+1+1+6, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_2, max_ar_2, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_2, max_ar_2, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_22224_4xarea(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_22224(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1179,7 +837,7 @@ public:
     for (int i = 0; i < 16; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -1191,7 +849,7 @@ public:
     for (int i = 0; i < 8; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
+        radix_reduce_intermediate<2>(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
       }
     }
 
@@ -1203,7 +861,7 @@ public:
     for (int i = 0; i < 4; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar_1[i*2+j], max_ar_1[i*2+j], acc_ar_2[i][j], max_ar_2[i][j]);
+        radix_reduce_intermediate<2>(acc_ar_1[i*2+j], max_ar_1[i*2+j], acc_ar_2[i][j], max_ar_2[i][j]);
       }
     }
 
@@ -1213,7 +871,7 @@ public:
     ROW_4:
     #pragma hls_unroll
     for (int i = 0; i < 4; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_2[i], max_ar_2[i], acc_ar_3[i], max_ar_3[i]);
+      radix_reduce_intermediate<2>(acc_ar_2[i], max_ar_2[i], acc_ar_3[i], max_ar_3[i]);
     }
 
     ac_int<M+1+1+6, true> acc;
@@ -1224,7 +882,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_24222_4xarea(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_24222(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1251,7 +909,7 @@ public:
     for (int i = 0; i < 8; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 4; j++) {
-        radix_2_reduce_area(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -1275,7 +933,7 @@ public:
     for (int i = 0; i < 2; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar_1[i*2+j], max_ar_1[i*2+j], acc_ar_2[i][j], max_ar_2[i][j]);
+        radix_reduce_intermediate<2>(acc_ar_1[i*2+j], max_ar_1[i*2+j], acc_ar_2[i][j], max_ar_2[i][j]);
       }
     }
 
@@ -1285,18 +943,18 @@ public:
     ROW_4:
     #pragma hls_unroll
     for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_2[i], max_ar_2[i], acc_ar_3[i], max_ar_3[i]);
+      radix_reduce_intermediate<2>(acc_ar_2[i], max_ar_2[i], acc_ar_3[i], max_ar_3[i]);
     }
 
     ac_int<M+1+1+6, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_3, max_ar_3, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_3, max_ar_3, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_6x2_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_222222(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1323,7 +981,7 @@ public:
     for (int i = 0; i < 16; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -1335,7 +993,7 @@ public:
     for (int i = 0; i < 8; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
+        radix_reduce_intermediate<2>(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
       }
     }
 
@@ -1347,7 +1005,7 @@ public:
     for (int i = 0; i < 4; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar_1[i*2+j], max_ar_1[i*2+j], acc_ar_2[i][j], max_ar_2[i][j]);
+        radix_reduce_intermediate<2>(acc_ar_1[i*2+j], max_ar_1[i*2+j], acc_ar_2[i][j], max_ar_2[i][j]);
       }
     }
 
@@ -1359,7 +1017,7 @@ public:
     for (int i = 0; i < 2; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar_2[i*2+j], max_ar_2[i*2+j], acc_ar_3[i][j], max_ar_3[i][j]);
+        radix_reduce_intermediate<2>(acc_ar_2[i*2+j], max_ar_2[i*2+j], acc_ar_3[i][j], max_ar_3[i][j]);
       }
     }
 
@@ -1369,12 +1027,12 @@ public:
     ROW_5:
     #pragma hls_unroll
     for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_3[i], max_ar_3[i], acc_ar_4[i], max_ar_4[i]);
+      radix_reduce_intermediate<2>(acc_ar_3[i], max_ar_3[i], acc_ar_4[i], max_ar_4[i]);
     }
     
     ac_int<M+1+1+6, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_4, max_ar_4, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_4, max_ar_4, acc, maxExp);
     
     #include "norm_and_round.h"
   }
@@ -1382,7 +1040,7 @@ public:
 
   // IN 32
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_162_area(ffloat<M,E> A[N]) {
+  void fpaReduce_online_162(ffloat<M,E> A[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1411,48 +1069,13 @@ public:
 
     ac_int<M+1+1+5, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar, max_ar, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar, max_ar, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_162_lat(ffloat<M,E> A[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-    
-    ac_int<M+1+1+4, true> acc_ar[2];
-    ac_int<E+2    , true> max_ar[2];
-    
-    ffloat<M,E> A_0[16];
-    ffloat<M,E> A_1[16];
-
-    SET_A0:
-    #pragma hls_unroll
-    for(int i = 0; i < 16; i++) {
-      A_0[i] = A[i];
-    }
-    SET_A1:
-    #pragma hls_unroll
-    for(int i = 0; i < 16; i++) {
-      A_1[i] = A[16 + i];
-    }
-
-    radix_reduce<16>(A_0, acc_ar[0], max_ar[0]);
-    radix_reduce<16>(A_1, acc_ar[1], max_ar[1]);
-
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar, max_ar, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_216_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_216(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1477,7 +1100,7 @@ public:
     ROW_1:
     #pragma hls_unroll
     for (int i = 0; i < 16; i++) {
-      radix_2_reduce_area(A[i], acc_ar[i], max_ar[i]);
+      radix_reduce<2>(A[i], acc_ar[i], max_ar[i]);
     }
 
     ac_int<M+1+1+5, true> acc;
@@ -1488,43 +1111,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_216_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[16];
-    ac_int<E+2    , true> max_ar[16];
-    
-    ffloat<M,E> A[16][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 16; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 16; i++) {
-      radix_2_reduce(A[i], acc_ar[i], max_ar[i]);
-    }
-
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_reduce_intermediate<16>(acc_ar, max_ar, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_282_area_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_282(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1551,7 +1138,7 @@ public:
     for (int i = 0; i < 2; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 8; j++) {
-        radix_2_reduce_area(A[i*8+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*8+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -1566,157 +1153,13 @@ public:
 
     ac_int<M+1+1+5, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_1, max_ar_1, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_1, max_ar_1, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_282_area_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[2][8];
-    ac_int<E+2    , true> max_ar[2][8];
-    
-    ffloat<M,E> A[16][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 16; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 8; j++) {
-        radix_2_reduce_area(A[i*8+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+4, true> acc_ar_1[2];
-    ac_int<E+2    , true> max_ar_1[2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_reduce_intermediate<8>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_282_lat_area(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[2][8];
-    ac_int<E+2    , true> max_ar[2][8];
-    
-    ffloat<M,E> A[16][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 16; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 8; j++) {
-        radix_2_reduce(A[i*8+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+4, true> acc_ar_1[2];
-    ac_int<E+2    , true> max_ar_1[2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_reduce_intermediate<8>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_282_lat_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[2][8];
-    ac_int<E+2    , true> max_ar[2][8];
-    
-    ffloat<M,E> A[16][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 16; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 8; j++) {
-        radix_2_reduce(A[i*8+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+4, true> acc_ar_1[2];
-    ac_int<E+2    , true> max_ar_1[2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_reduce_intermediate<8>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_244_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_244(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1743,7 +1186,7 @@ public:
     for (int i = 0; i < 4; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 4; j++) {
-        radix_2_reduce_area(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -1764,55 +1207,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_244_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[4][4];
-    ac_int<E+2    , true> max_ar[4][4];
-    
-    ffloat<M,E> A[16][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 16; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 4; j++) {
-        radix_2_reduce_area(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+3, true> acc_ar_1[4];
-    ac_int<E+2    , true> max_ar_1[4];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      radix_reduce_intermediate<4>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_reduce_intermediate<4>(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_442_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_442(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1854,61 +1249,13 @@ public:
 
     ac_int<M+1+1+5, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_1, max_ar_1, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_1, max_ar_1, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_442_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+2, true> acc_ar[2][4];
-    ac_int<E+2    , true> max_ar[2][4];
-    
-    ffloat<M,E> A[8][4];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 8; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 4; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 4; j++) {
-        radix_reduce<4>(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+4, true> acc_ar_1[2];
-    ac_int<E+2    , true> max_ar_1[2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_reduce_intermediate<4>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_822_area_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_822(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -1945,66 +1292,18 @@ public:
     ROW_2:
     #pragma hls_unroll
     for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
+      radix_reduce_intermediate<2>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
     }
 
     ac_int<M+1+1+5, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_1, max_ar_1, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_1, max_ar_1, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_822_area_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+3, true> acc_ar[2][2];
-    ac_int<E+2    , true> max_ar[2][2];
-    
-    ffloat<M,E> A[4][8];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 8; j++) {
-        A[i][j] = A_i[i*8+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_reduce<8>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+4, true> acc_ar_1[2];
-    ac_int<E+2    , true> max_ar_1[2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_424_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_424(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -2041,55 +1340,7 @@ public:
     ROW_2:
     #pragma hls_unroll
     for (int i = 0; i < 4; i++) {
-      radix_2_reduce_intermediate_area(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_reduce_intermediate<4>(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_424_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+2, true> acc_ar[4][2];
-    ac_int<E+2    , true> max_ar[4][2];
-    
-    ffloat<M,E> A[8][4];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 8; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 4; j++) {
-        A[i][j] = A_i[i*4+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_reduce<4>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+3, true> acc_ar_1[4];
-    ac_int<E+2    , true> max_ar_1[4];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      radix_2_reduce_intermediate(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
+      radix_reduce_intermediate<2>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
     }
 
     ac_int<M+1+1+5, true> acc;
@@ -2172,7 +1423,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_228_area_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_228(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -2199,7 +1450,7 @@ public:
     for (int i = 0; i < 8; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -2209,7 +1460,7 @@ public:
     ROW_2:
     #pragma hls_unroll
     for (int i = 0; i < 8; i++) {
-      radix_2_reduce_intermediate_area(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
+      radix_reduce_intermediate<2>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
     }
 
     ac_int<M+1+1+5, true> acc;
@@ -2220,7 +1471,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2224_2xarea_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_2224(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -2247,7 +1498,7 @@ public:
     for (int i = 0; i < 8; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -2259,7 +1510,7 @@ public:
     for (int i = 0; i < 4; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
+        radix_reduce_intermediate<2>(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
       }
     }
 
@@ -2269,7 +1520,7 @@ public:
     ROW_3:
     #pragma hls_unroll
     for (int i = 0; i < 4; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
+      radix_reduce_intermediate<2>(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
     }
   
     ac_int<M+1+1+5, true> acc;
@@ -2280,7 +1531,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2224_2xarea_lat(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_2242(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -2307,67 +1558,7 @@ public:
     for (int i = 0; i < 8; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+2, true> acc_ar_1[4][2];
-    ac_int<E+2    , true> max_ar_1[4][2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+3, true> acc_ar_2[4];
-    ac_int<E+2    , true> max_ar_2[4];
-
-    ROW_3:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
-    }
-  
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_reduce_intermediate<4>(acc_ar_2, max_ar_2, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2242_2xarea_area(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[8][2];
-    ac_int<E+2    , true> max_ar[8][2];
-    
-    ffloat<M,E> A[16][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 16; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 8; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -2379,7 +1570,7 @@ public:
     for (int i = 0; i < 2; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 4; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*4+j], max_ar[i*4+j], acc_ar_1[i][j], max_ar_1[i][j]);
+        radix_reduce_intermediate<2>(acc_ar[i*4+j], max_ar[i*4+j], acc_ar_1[i][j], max_ar_1[i][j]);
       }
     }
 
@@ -2394,73 +1585,13 @@ public:
   
     ac_int<M+1+1+5, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_2, max_ar_2, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_2, max_ar_2, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2242_2xarea_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[8][2];
-    ac_int<E+2    , true> max_ar[8][2];
-    
-    ffloat<M,E> A[16][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 16; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 8; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+2, true> acc_ar_1[2][4];
-    ac_int<E+2    , true> max_ar_1[2][4];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 4; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*4+j], max_ar[i*4+j], acc_ar_1[i][j], max_ar_1[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+4, true> acc_ar_2[2];
-    ac_int<E+2    , true> max_ar_2[2];
-
-    ROW_3:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_reduce_intermediate<4>(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
-    }
-  
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_2, max_ar_2, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2422_2xarea_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_2422(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -2487,7 +1618,7 @@ public:
     for (int i = 0; i < 4; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 4; j++) {
-        radix_2_reduce_area(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -2509,78 +1640,18 @@ public:
     ROW_3:
     #pragma hls_unroll
     for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
+      radix_reduce_intermediate<2>(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
     }
   
     ac_int<M+1+1+5, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_2, max_ar_2, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_2, max_ar_2, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_2422_2xarea_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[4][4];
-    ac_int<E+2    , true> max_ar[4][4];
-    
-    ffloat<M,E> A[16][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 16; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 4; j++) {
-        radix_2_reduce_area(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+3, true> acc_ar_1[2][2];
-    ac_int<E+2    , true> max_ar_1[2][2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_reduce_intermediate<4>(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+4, true> acc_ar_2[2];
-    ac_int<E+2    , true> max_ar_2[2];
-
-    ROW_3:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
-    }
-  
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_2, max_ar_2, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_4222_2xarea_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_4222(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -2619,7 +1690,7 @@ public:
     for (int i = 0; i < 2; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
+        radix_reduce_intermediate<2>(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
       }
     }
 
@@ -2629,78 +1700,18 @@ public:
     ROW_3:
     #pragma hls_unroll
     for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
+      radix_reduce_intermediate<2>(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
     }
   
     ac_int<M+1+1+5, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_2, max_ar_2, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_2, max_ar_2, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_4222_2xarea_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+2, true> acc_ar[4][2];
-    ac_int<E+2    , true> max_ar[4][2];
-    
-    ffloat<M,E> A[8][4];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 8; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 4; j++) {
-        A[i][j] = A_i[i*4+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_reduce<4>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+3, true> acc_ar_1[2][2];
-    ac_int<E+2    , true> max_ar_1[2][2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+4, true> acc_ar_2[2];
-    ac_int<E+2    , true> max_ar_2[2];
-
-    ROW_3:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
-    }
-  
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_2, max_ar_2, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_5x2_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_22222(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -2727,7 +1738,7 @@ public:
     for (int i = 0; i < 8; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -2739,7 +1750,7 @@ public:
     for (int i = 0; i < 4; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
+        radix_reduce_intermediate<2>(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
       }
     }
 
@@ -2751,7 +1762,7 @@ public:
     for (int i = 0; i < 2; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar_1[i*2+j], max_ar_1[i*2+j], acc_ar_2[i][j], max_ar_2[i][j]);
+        radix_reduce_intermediate<2>(acc_ar_1[i*2+j], max_ar_1[i*2+j], acc_ar_2[i][j], max_ar_2[i][j]);
       }
     }
 
@@ -2761,91 +1772,19 @@ public:
     ROW_4:
     #pragma hls_unroll
     for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_2[i], max_ar_2[i], acc_ar_3[i], max_ar_3[i]);
+      radix_reduce_intermediate<2>(acc_ar_2[i], max_ar_2[i], acc_ar_3[i], max_ar_3[i]);
     }
 
     ac_int<M+1+1+5, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_3, max_ar_3, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_3, max_ar_3, acc, maxExp);
     
     #include "norm_and_round.h"
   }
 
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_5x2_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[8][2];
-    ac_int<E+2    , true> max_ar[8][2];
-    
-    ffloat<M,E> A[16][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 16; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 8; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+2, true> acc_ar_1[4][2];
-    ac_int<E+2    , true> max_ar_1[4][2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+3, true> acc_ar_2[2][2];
-    ac_int<E+2    , true> max_ar_2[2][2];
-
-    ROW_3:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar_1[i*2+j], max_ar_1[i*2+j], acc_ar_2[i][j], max_ar_2[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+4, true> acc_ar_3[2];
-    ac_int<E+2    , true> max_ar_3[2];
-
-    ROW_4:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_2[i], max_ar_2[i], acc_ar_3[i], max_ar_3[i]);
-    }
-
-    ac_int<M+1+1+5, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_3, max_ar_3, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-  
   // IN 16
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_82_area(ffloat<M,E> A[N]) {
+  void fpaReduce_online_82(ffloat<M,E> A[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -2877,51 +1816,13 @@ public:
 
     ac_int<M+1+1+4, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar, max_ar, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar, max_ar, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_82_lat(ffloat<M,E> A[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-    
-    typedef ac_int<E+2   , true> k_t;
-    typedef ac_int<sum_bw, true> o_t;
-
-    ac_int<M+1+1+3, true> acc_ar[2];
-    ac_int<E+2    , true> max_ar[2];
-    
-    ffloat<M,E> A_0[8];
-    ffloat<M,E> A_1[8];
-
-    SET_A0:
-    #pragma hls_unroll
-    for(int i = 0; i < 8; i++) {
-      A_0[i] = A[i];
-    }
-    SET_A1:
-    #pragma hls_unroll
-    for(int i = 0; i < 8; i++) {
-      A_1[i] = A[8 + i];
-    }
-
-    radix_reduce<8>(A_0, acc_ar[0], max_ar[0]);
-    radix_reduce<8>(A_1, acc_ar[1], max_ar[1]);
-
-    ac_int<M+1+1+4, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar, max_ar, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_28_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_28(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -2946,7 +1847,7 @@ public:
     ROW_1:
     #pragma hls_unroll
     for (int i = 0; i < 8; i++) {
-      radix_2_reduce_area(A[i], acc_ar[i], max_ar[i]);
+      radix_reduce<2>(A[i], acc_ar[i], max_ar[i]);
     }
 
     ac_int<M+1+1+4, true> acc;
@@ -2957,43 +1858,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_28_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[8];
-    ac_int<E+2    , true> max_ar[8];
-    
-    ffloat<M,E> A[8][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 8; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 8; i++) {
-      radix_2_reduce(A[i], acc_ar[i], max_ar[i]);
-    }
-
-    ac_int<M+1+1+4, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_reduce_intermediate<8>(acc_ar, max_ar, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_242_area_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_242(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -3020,7 +1885,7 @@ public:
     for (int i = 0; i < 2; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 4; j++) {
-        radix_2_reduce_area(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -3035,61 +1900,13 @@ public:
 
     ac_int<M+1+1+4, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_1, max_ar_1, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_1, max_ar_1, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_242_area_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[2][4];
-    ac_int<E+2    , true> max_ar[2][4];
-    
-    ffloat<M,E> A[8][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 8; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 4; j++) {
-        radix_2_reduce_area(A[i*4+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+3, true> acc_ar_1[2];
-    ac_int<E+2    , true> max_ar_1[2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_reduce_intermediate<4>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+4, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_224_area_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_224(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -3116,7 +1933,7 @@ public:
     for (int i = 0; i < 4; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -3126,7 +1943,7 @@ public:
     ROW_2:
     #pragma hls_unroll
     for (int i = 0; i < 4; i++) {
-      radix_2_reduce_intermediate_area(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
+      radix_reduce_intermediate<2>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
     }
 
     ac_int<M+1+1+4, true> acc;
@@ -3137,55 +1954,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_224_area_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+1, true> acc_ar[4][2];
-    ac_int<E+2    , true> max_ar[4][2];
-    
-    ffloat<M,E> A[8][2];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 8; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        A[i][j] = A_i[i*2+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+2, true> acc_ar_1[4];
-    ac_int<E+2    , true> max_ar_1[4];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      radix_2_reduce_intermediate(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+4, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_reduce_intermediate<4>(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_422_area_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_422(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -3222,60 +1991,12 @@ public:
     ROW_2:
     #pragma hls_unroll
     for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
+      radix_reduce_intermediate<2>(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
     }
 
     ac_int<M+1+1+4, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_1, max_ar_1, acc, maxExp);
-
-    #include "norm_and_round.h"
-  }
-
-  template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_422_area_lat(ffloat<M,E> A_i[N]) {
-    const int sumbits = CLOG2(N);
-
-    /// @note This is the width of the accumulator
-    /// (ovf_bits)(1)(mantissa)(extra4prec)
-    const int sum_bw = (sumbits + 1) + 1 + man_width + 0;
-
-    ac_int<M+1+1+2, true> acc_ar[2][2];
-    ac_int<E+2    , true> max_ar[2][2];
-    
-    ffloat<M,E> A[4][4];
-
-    SET_A_i:
-    #pragma hls_unroll
-    for (int i = 0; i < 4; i++) {
-      SET_A_i_j:
-      #pragma hls_unroll
-      for (int j = 0; j < 4; j++) {
-        A[i][j] = A_i[i*4+j];
-      }
-    }
-
-    ROW_1:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      #pragma hls_unroll
-      for (int j = 0; j < 2; j++) {
-        radix_reduce<4>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
-      }
-    }
-
-    ac_int<M+1+1+3, true> acc_ar_1[2];
-    ac_int<E+2    , true> max_ar_1[2];
-
-    ROW_2:
-    #pragma hls_unroll
-    for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar[i], max_ar[i], acc_ar_1[i], max_ar_1[i]);
-    }
-
-    ac_int<M+1+1+4, true> acc;
-    ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate(acc_ar_1, max_ar_1, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_1, max_ar_1, acc, maxExp);
 
     #include "norm_and_round.h"
   }
@@ -3317,7 +2038,7 @@ public:
   }
 
   template<int N, RND_ENUM RND_MODE=EVEN, bool DENORMALS=false>
-  void fpaReduce_online_4x2_area(ffloat<M,E> A_i[N]) {
+  void fpaReduce_online_2222(ffloat<M,E> A_i[N]) {
     const int sumbits = CLOG2(N);
 
     /// @note This is the width of the accumulator
@@ -3344,7 +2065,7 @@ public:
     for (int i = 0; i < 4; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_area(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
+        radix_reduce<2>(A[i*2+j], acc_ar[i][j], max_ar[i][j]);
       }
     }
 
@@ -3356,7 +2077,7 @@ public:
     for (int i = 0; i < 2; i++) {
       #pragma hls_unroll
       for (int j = 0; j < 2; j++) {
-        radix_2_reduce_intermediate_area(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
+        radix_reduce_intermediate<2>(acc_ar[i*2+j], max_ar[i*2+j], acc_ar_1[i][j], max_ar_1[i][j]);
       }
     }
 
@@ -3366,18 +2087,18 @@ public:
     ROW_3:
     #pragma hls_unroll
     for (int i = 0; i < 2; i++) {
-      radix_2_reduce_intermediate_area(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
+      radix_reduce_intermediate<2>(acc_ar_1[i], max_ar_1[i], acc_ar_2[i], max_ar_2[i]);
     }
 
     ac_int<M+1+1+4, true> acc;
     ac_int<E+2    , true> maxExp;
-    radix_2_reduce_intermediate_area(acc_ar_2, max_ar_2, acc, maxExp);
+    radix_reduce_intermediate<2>(acc_ar_2, max_ar_2, acc, maxExp);
 
     #include "norm_and_round.h"
   }
 
   /** THE BASELINE ADDER
-    The baseline adder that uses a radix operator
+    The baseline adder that uses a single radix operator
     of size equal to the input's size.
   **/
 
