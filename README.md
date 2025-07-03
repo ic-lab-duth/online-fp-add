@@ -40,7 +40,7 @@ This repository is organized as follows:
 
 ## Reference
 This work was publish to IEEE Transaction on Very Large Scale Integration (VLSI) Systems. You can find the [paper](https://gdimitrak.github.io/papers/TVLSI24-Online-FLP-Add.pdf) here. To cite this work please use
-
+```
 @ARTICLE{10750002,
   author={Alexandridis, Kosmas and Dimitrakopoulos, Giorgos},
   journal={IEEE Transactions on Very Large Scale Integration (VLSI) Systems}, 
@@ -49,8 +49,9 @@ This work was publish to IEEE Transaction on Very Large Scale Integration (VLSI)
   volume={33},
   number={4},
   pages={1182-1186},
-  doi={10.1109/TVLSI.2024.3488966}}
-
+  doi={10.1109/TVLSI.2024.3488966}
+}
+```
 
 ## Contributors
 
